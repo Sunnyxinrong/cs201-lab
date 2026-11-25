@@ -81,7 +81,7 @@ window.CS201UI = (() => {
     const title = el('div', { class: 'lab-head' },
       el('div', { class: 'lab-head-copy' },
         el('h2', {}, t(lab.title)),
-        el('p', {}, t(CS201.lessons[id].lab))),
+        el('p', {}, t(lab.intro ?? CS201.lessons[id].lab))),
       button(t(b('↺ 重置', '↺ Reset')), reset, 'button compact quiet', { data: { labReset: '' } }));
     host.append(el('div', { class: 'surface lab-card' }, title, fields, alert,
       el('div', { class: 'frame-bar' }, el('span', { class: 'frame-light', 'aria-hidden': 'true' }), message, result),

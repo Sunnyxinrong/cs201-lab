@@ -69,6 +69,10 @@
         op('insert', b('add(i, x) 插入', 'add(i, x) Insert'), true, true),
         op('get', 'get(i)', true, false), op('set', 'set(i, x)', true, true),
         op('remove', 'remove(i)', true, false));
+      ui.row(ui.action('classroom-box', b('演示课堂 Box 的第 11 次 add', 'Replay the classroom Box’s eleventh add'), () => {
+        const full = { slots: Array.from({ length: 10 }, (_, i) => i + 1), size: 10 };
+        ui.setFrames(M.arrayAction(full, 'append', null, 11));
+      }, 'quiet'));
     },
     view(f, ui) {
       return el('div', { class: 'linear-visual' },
@@ -79,7 +83,8 @@
     },
     tryIt: [
       b('保留初始数据，追加 99。用“上一步”数一数复制了多少项。', 'Append 99 to the initial data. Use Previous step to count the copied items.'),
-      b('在下标 1 插入 15，再删除下标 2。比较两次移动方向。', 'Insert 15 at index 1, then remove at index 2. Compare the directions of the shifts.')
+      b('在下标 1 插入 15，再删除下标 2。比较两次移动方向。', 'Insert 15 at index 1, then remove at index 2. Compare the directions of the shifts.'),
+      b('用课堂 Box 样例看 10 格扩到 20 格。编号 1 到 11 代表各本书的引用，复制引用时书本身份不变。', 'Use the classroom Box preset for growth from 10 to 20 slots. IDs 1 through 11 stand for book references. Copying a reference preserves book identity.')
     ]
   };
 

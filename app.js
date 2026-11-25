@@ -25,6 +25,13 @@
   const tabs = { learn: b('讲解', 'Learn'), lab: b('实验', 'Experiment'), quiz: b('练习', 'Practice') };
   const homeText = b('课程总览', 'Course overview');
   const referenceText = b('速查与术语', 'Reference & glossary');
+  const javaText = b('Java 考点加练', 'Java exam practice');
+  const javaTabs = {
+    api: { label: b('方法与参数', 'Methods & arguments'), href: '#java', lab: 'java-api',
+      description: b('练 ArrayList 和 ArrayDeque 的参数、重载、返回值与异常。', 'Practice arguments, overloads, return values, and exceptions for ArrayList and ArrayDeque.') },
+    nodes: { label: b('节点与引用', 'Nodes & references'), href: '#java/nodes', lab: 'java-nodes',
+      description: b('跟着 Java 代码把链表、二叉树和递归返回值里的引用画出来。', 'Follow the Java code and trace references in a list, a binary tree, and a recursive return.') }
+  };
   const chapterName = (id) => t(b('第 ' + pad(id) + ' 讲', 'Lecture ' + pad(id)));
   const lessonLink = (id, tab = 'learn') => '#lesson-' + id + (tab === 'learn' ? '' : '/' + tab);
   const groupOf = (id) => groups.find((x) => x.ids.includes(id));
@@ -50,6 +57,8 @@
 
   function routeForHash() {
     if (location.hash === '#reference') return { type: 'reference' };
+    if (location.hash === javaTabs.api.href) return { type: 'java', tab: 'api' };
+    if (location.hash === javaTabs.nodes.href) return { type: 'java', tab: 'nodes' };
     const match = /^#lesson-(\d+)(?:\/(lab|quiz))?$/.exec(location.hash);
     if (match && ids.includes(Number(match[1]))) return { type: 'lesson', id: Number(match[1]), tab: match[2] ?? 'learn' };
     return { type: 'home' };
@@ -63,7 +72,7 @@
       el('i', { class: 'brand-dot b' }), el('i', { class: 'brand-dot c' }));
   }
   function smallIcon(name) {
-    const glyphs = { home: '⌂', reference: '≡', menu: '☰', learn: '▤', lab: '◇', quiz: '✓' };
+    const glyphs = { home: '⌂', reference: '≡', menu: '☰', learn: '▤', lab: '◇', quiz: '✓', java: '⌘' };
     return el('span', { class: 'small-icon', 'aria-hidden': 'true' }, glyphs[name]);
   }
 
@@ -110,6 +119,7 @@
                 el('span', { class: 'nav-title' }, t(lessons[id].title)),
                 el('span', { class: 'nav-check', hidden: true, 'aria-hidden': 'true' }, '✓')], { chapter: id })))),
         el('div', { class: 'nav-divider' },
+          navLink(t(javaText), javaTabs.api.href, route.type === 'java', [smallIcon('java'), el('span', {}, t(javaText))]),
           navLink(t(referenceText), '#reference', route.type === 'reference', [smallIcon('reference'), el('span', {}, t(referenceText))]))),
       el('div', { class: 'study-progress' },
         el('div', { class: 'progress-title' }, el('span', {}, t(b('完成讲数', 'Lectures finished'))), el('b', { class: 'mono' }, '0 / 11')),
@@ -147,7 +157,7 @@
       if (opening) sidebar.querySelector('a')?.focus();
     }, 'menu-button', { 'aria-label': t(b('课程菜单', 'Course menu')), 'aria-controls': 'sidebar' });
     const label = route.type === 'lesson' ? chapterName(route.id) + ' · ' + t(lessons[route.id].title)
-      : t(route.type === 'reference' ? referenceText : homeText);
+      : t(route.type === 'java' ? javaText : route.type === 'reference' ? referenceText : homeText);
     const locale = el('div', { class: 'locale-switch', role: 'group', 'aria-label': t(b('界面语言', 'Language')) },
       [['zh', '中', '中文'], ['en', 'EN', 'English']].map(([key, name, full]) => button(name, () => {
         if (language === key) return;
@@ -263,7 +273,14 @@
         el('p', {}, t(b('拖动曲线、追踪指针、亲手旋转一棵树。跟着课件的顺序，把每一步做明白。', 'Drag a curve, follow a pointer, and rotate a tree. Work through the lecture sequence one operation at a time.'))),
         el('div', { class: 'hero-buttons' }, start,
           button(t(b('查看学习路线', 'View roadmap')), () => roadmap.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' }), 'button hero-secondary'))),
-      heroDemo()), roadmap);
+      heroDemo()),
+      el('section', { class: 'exam-entry surface' },
+        el('div', {}, el('h2', {}, t(javaText)),
+          el('p', {}, t(b('从课堂代码练 Box 扩容、节点接线和 Java 方法重载。', 'Use classroom code to practice Box growth, node wiring, and Java overloads.')))),
+        el('div', { class: 'exam-actions' },
+          link(t(b('辨析方法 →', 'Compare methods →')), javaTabs.api.href, 'button compact primary'),
+          link(t(b('追踪节点 →', 'Trace nodes →')), javaTabs.nodes.href, 'button compact'))),
+      roadmap);
     return content;
   }
 
@@ -281,30 +298,43 @@
       'slide-link', { target: '_blank', rel: 'noopener' }) : el('span', { class: 'slide-citation' }, label);
   }
 
+  function codeBlock(code, compact = false) {
+    return el('div', { class: 'code-block' + (compact ? ' exercise-code' : '') },
+      el('div', { class: 'code-caption mono' }, 'Java'),
+      el('pre', {}, el('code', {}, code)));
+  }
+
+  function jumpTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  }
+
   function learn(id, lesson) {
     const local = location.protocol === 'file:' || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
     const source = local ? '../' + ['CS201（2）', 'CS201', lectureFiles[id]].map(encodeURIComponent).join('/') : null;
+    const supplement = lesson.chapters.findIndex((chapter) => chapter.classroom);
+    const practiceLab = lesson.chapters.find((chapter) => chapter.labLink?.[1].startsWith('#java'))?.labLink[1];
     const body = el('div', { class: 'article-flow' },
       lesson.chapters.map((chapter, i) =>
-        el('section', { class: 'surface article-section', id: 'concept-' + i },
+        el('section', { class: 'surface article-section' + (chapter.classroom ? ' classroom-start' : ''), id: 'concept-' + i },
           el('h2', {}, t(chapter.title)),
           chapter.paragraphs.map((p) => el('p', {}, t(p))),
           chapter.table ? table(chapter.table) : null,
           chapter.after ? el('div', { class: 'section-note' }, t(chapter.after)) : null,
-          chapter.code ? el('div', { class: 'code-block' },
-            el('div', { class: 'code-caption mono' }, 'Java'),
-            el('pre', {}, el('code', {}, chapter.code))) : null,
-          chapter.pages ? slideReference(chapter.pages, source) : null)));
+          chapter.code ? codeBlock(chapter.code) : null,
+          chapter.pages ? slideReference(chapter.pages, source) : null,
+          chapter.labLink ? link(t(chapter.labLink[0]), chapter.labLink[1], 'slide-link exam-lesson-link') : null)));
     const contents = el('aside', { class: 'article-aside' },
       el('div', { class: 'surface contents' }, el('h3', {}, t(b('本讲内容', 'In this lecture'))),
-        lesson.chapters.map((section, i) => button(t(section.title), () =>
-          document.getElementById('concept-' + i)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' }), 'contents-link'))),
+        lesson.chapters.map((section, i) => button(t(section.title), () => jumpTo('concept-' + i), 'contents-link'))),
       lesson.refs ? el('div', { class: 'surface contents api-links' }, el('h3', {}, t(b('Java 官方文档', 'Java API references'))),
         lesson.refs.map(([name, href]) => link(name + ' ↗', href, 'slide-link', { target: '_blank', rel: 'noopener' }))) : null);
     return el('div', {},
       el('div', { class: 'takeaway' }, el('span', { class: 'takeaway-icon', 'aria-hidden': 'true' }, lesson.art),
         el('div', {}, el('h2', {}, t(b('先记住这一点', 'Start with this idea'))), el('p', {}, t(lesson.takeaway))),
         link(t(b('去实验 →', 'Open experiment →')), lessonLink(id, 'lab'), 'button compact primary')),
+      supplement >= 0 ? el('div', { class: 'lesson-supplement-links' },
+        button(t(b('跳到课堂补充 ↓', 'Jump to the classroom examples ↓')), () => jumpTo('concept-' + supplement), 'button compact'),
+        link(t(javaText), practiceLab ?? javaTabs.api.href, 'button compact quiet')) : null,
       el('div', { class: 'guide-layout' }, body, contents));
   }
 
@@ -328,6 +358,12 @@
       && /^[A-Z]+$/.test(input.join('')) && input.join('') === answer.join('');
   }
 
+  function matchesJavaFragment(given, answers) {
+    const tokenize = (value) => value.trim().replace(/;$/, '').match(/"[^"]*"|'[^']*'|[\w$]+|[^\s]/g)?.join(' ');
+    const tokens = tokenize(given);
+    return answers.some((answer) => tokens === tokenize(answer));
+  }
+
   function exercise(id, q, i) {
     const key = id + '-' + i;
     if (!drafts.has(key)) drafts.set(key, { value: '', choice: null, order: [], hint: false, feedback: null });
@@ -342,7 +378,7 @@
     const form = el('form', { class: 'surface exercise', on: { submit: submit }, 'aria-labelledby': promptId },
       el('div', { class: 'exercise-top' },
         el('span', { class: 'exercise-no mono' }, t(b('第 ' + (i + 1) + ' 题', 'Question ' + (i + 1)))), check),
-      el('h3', { id: promptId }, t(q.prompt)), area,
+      el('h3', { id: promptId }, t(q.prompt)), q.code ? codeBlock(q.code, true) : null, area,
       el('div', { class: 'quiz-actions' },
         el('button', { type: 'submit', class: 'button primary compact' }, t(b('检查答案', 'Check answer'))),
         button(t(b('提示', 'Hint')), (event) => {
@@ -381,7 +417,9 @@
         el('span', { class: 'choice-face' }, el('span', { class: 'choice-letter mono' }, String.fromCharCode(65 + j)), t(option))))));
     else if (q.kind === 'input') area.append(el('input', {
       class: 'answer-input mono', value: draft.value, maxLength: 160, autoComplete: 'off', spellcheck: false,
-      placeholder: q.placeholder ?? t(b('输入你的答案', 'Enter your answer')),
+      placeholder: q.placeholder ?? t(q.javaAnswers
+        ? b('输入 Java 代码，区分大小写', 'Enter Java code, case-sensitive')
+        : b('输入你的答案', 'Enter your answer')),
       'aria-label': t(b('你的答案', 'Your answer')), on: { input: (event) => { draft.value = event.target.value; } }
     }));
     else orderChoices();
@@ -391,7 +429,10 @@
       let neutral;
       let right;
       if (q.kind === 'choice') { neutral = draft.choice === null; right = draft.choice === q.answer; }
-      else if (q.kind === 'input') { neutral = draft.value.trim() === ''; right = matching(draft.value, q.answer); }
+      else if (q.kind === 'input') {
+        neutral = draft.value.trim() === '';
+        right = q.javaAnswers ? matchesJavaFragment(draft.value, q.javaAnswers) : matching(draft.value, q.answer);
+      }
       else { neutral = draft.order.length !== q.answer.length; right = draft.order.join(',') === q.answer.join(','); }
       draft.feedback = neutral ? 'empty' : right ? 'correct' : 'incorrect';
       if (right && !neutral) {
@@ -426,9 +467,21 @@
   }
 
   function practice(id, lesson) {
-    return el('div', { class: 'practice' }, levels.map(([title, hint], level) => el('section', { class: 'practice-level' },
+    const advancedStart = levels.length * 2;
+    const advanced = lesson.questions.slice(advancedStart);
+    const base = levels.map(([title, hint], level) => el('section', { class: 'practice-level' },
       el('div', { class: 'practice-heading' }, el('h2', {}, t(title)), el('p', {}, t(hint))),
-      lesson.questions.slice(level * 2, level * 2 + 2).map((q, i) => exercise(id, q, level * 2 + i)))));
+      lesson.questions.slice(level * 2, level * 2 + 2).map((q, i) => exercise(id, q, level * 2 + i))));
+    return el('div', { class: 'practice' },
+      advanced.length ? el('div', { class: 'practice-jump' },
+        button(t(b('跳到 ' + advanced.length + ' 道进阶坑题 ↓', 'Jump to ' + advanced.length + ' exam traps ↓')),
+          () => jumpTo('advanced-practice'), 'button compact primary')) : null,
+      base,
+      advanced.length ? el('section', { class: 'practice-level advanced-practice', id: 'advanced-practice' },
+        el('div', { class: 'practice-heading' },
+          el('h2', {}, t(b('进阶坑题', 'Exam traps'))),
+          el('p', {}, t(b('盯紧声明类型、实参、引用与运行顺序。', 'Track declared types, arguments, references, and execution order.')))),
+        advanced.map((q, i) => exercise(id, q, advancedStart + i))) : null);
   }
   function chapterNav(id) {
     const index = ids.indexOf(id);
@@ -463,6 +516,28 @@
     if (tab === 'quiz') out.append(practice(id, l));
     out.append(chapterNav(id));
     return out;
+  }
+
+  function javaPage(tab) {
+    const spec = javaTabs[tab];
+    const panel = el('div', { class: 'lab-content' });
+    dispose = mount(panel, spec.lab, t);
+    const idsForPractice = tab === 'api' ? [10, 12, 13] : [11, 14, 15];
+    return el('div', { class: 'lesson-page java-page tone-' + (tab === 'api' ? 'violet' : 'blue') },
+      el('div', { class: 'chapter-header' },
+        el('div', { class: 'chapter-heading-copy' },
+          el('div', { class: 'chapter-kicker mono' }, 'JAVA SE 17'),
+          el('h1', {}, t(javaText)), el('p', {}, t(spec.description))),
+        el('span', { class: 'chapter-glyph', 'aria-hidden': 'true' }, tab === 'api' ? '⌘' : '↳')),
+      el('div', { class: 'chapter-toolbar' },
+        el('nav', { class: 'chapter-tabs', 'aria-label': t(javaText) },
+          Object.entries(javaTabs).map(([key, item]) => link(t(item.label), item.href,
+            'chapter-tab' + (tab === key ? ' selected' : ''), { 'aria-current': tab === key ? 'page' : null })))),
+      panel,
+      el('section', { class: 'surface exam-practice-links' },
+        el('h2', {}, t(b('做进阶坑题', 'Try the exam traps'))),
+        el('div', { class: 'exam-actions' }, idsForPractice.map((id) =>
+          link(chapterName(id) + ' · ' + t(lessons[id].title) + ' ↗', lessonLink(id, 'quiz'), 'button compact')))));
   }
 
   function reference() {
@@ -509,7 +584,7 @@
     const route = routeForHash();
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
     document.title = 'CS201 Lab · ' + (route.type === 'lesson' ? t(lessons[route.id].title)
-      : route.type === 'reference' ? t(referenceText) : t(b('数据结构实验室', 'Data Structures Lab')));
+      : route.type === 'java' ? t(javaText) : route.type === 'reference' ? t(referenceText) : t(b('数据结构实验室', 'Data Structures Lab')));
     skip.textContent = t(b('跳到内容', 'Skip to content'));
     scrim.setAttribute('aria-label', t(b('关闭导航', 'Close navigation')));
     if (route.type === 'lesson') {
@@ -518,7 +593,9 @@
     }
     buildSidebar(route);
     buildHeader(route);
-    const content = route.type === 'lesson' ? chapterPage(route.id, route.tab) : route.type === 'reference' ? reference() : home();
+    const content = route.type === 'lesson' ? chapterPage(route.id, route.tab)
+      : route.type === 'java' ? javaPage(route.tab)
+        : route.type === 'reference' ? reference() : home();
     main.replaceChildren(content);
     updateProgress();
     if (navigate) {
