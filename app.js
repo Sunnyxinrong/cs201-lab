@@ -26,6 +26,7 @@
   const homeText = b('课程总览', 'Course overview');
   const referenceText = b('速查与术语', 'Reference & glossary');
   const javaText = b('Java 考点加练', 'Java exam practice');
+  const codingText = CS201Workshop.title;
   const javaTabs = {
     api: { label: b('方法与参数', 'Methods & arguments'), href: '#java', lab: 'java-api',
       description: b('练 ArrayList 和 ArrayDeque 的参数、重载、返回值与异常。', 'Practice arguments, overloads, return values, and exceptions for ArrayList and ArrayDeque.') },
@@ -59,6 +60,8 @@
     if (location.hash === '#reference') return { type: 'reference' };
     if (location.hash === javaTabs.api.href) return { type: 'java', tab: 'api' };
     if (location.hash === javaTabs.nodes.href) return { type: 'java', tab: 'nodes' };
+    const coding = /^#coding(?:\/([a-z-]+))?$/.exec(location.hash);
+    if (coding) return { type: 'coding', id: coding[1] };
     const match = /^#lesson-(\d+)(?:\/(lab|quiz))?$/.exec(location.hash);
     if (match && ids.includes(Number(match[1]))) return { type: 'lesson', id: Number(match[1]), tab: match[2] ?? 'learn' };
     return { type: 'home' };
@@ -72,7 +75,7 @@
       el('i', { class: 'brand-dot b' }), el('i', { class: 'brand-dot c' }));
   }
   function smallIcon(name) {
-    const glyphs = { home: '⌂', reference: '≡', menu: '☰', learn: '▤', lab: '◇', quiz: '✓', java: '⌘' };
+    const glyphs = { home: '⌂', reference: '≡', menu: '☰', learn: '▤', lab: '◇', quiz: '✓', java: '⌘', coding: '⌨' };
     return el('span', { class: 'small-icon', 'aria-hidden': 'true' }, glyphs[name]);
   }
 
@@ -110,6 +113,7 @@
         '#home', 'brand', { 'aria-label': t(homeText) }),
       el('nav', { class: 'course-nav' },
         navLink(t(homeText), '#home', route.type === 'home', [smallIcon('home'), el('span', {}, t(homeText))]),
+        navLink(t(codingText), '#coding', route.type === 'coding', [smallIcon('coding'), el('span', {}, t(codingText))]),
         groups.map((group) =>
           el('div', { class: 'nav-group tone-' + group.theme },
             el('h2', {}, t(group.title)),
@@ -157,7 +161,7 @@
       if (opening) sidebar.querySelector('a')?.focus();
     }, 'menu-button', { 'aria-label': t(b('课程菜单', 'Course menu')), 'aria-controls': 'sidebar' });
     const label = route.type === 'lesson' ? chapterName(route.id) + ' · ' + t(lessons[route.id].title)
-      : t(route.type === 'java' ? javaText : route.type === 'reference' ? referenceText : homeText);
+      : t(route.type === 'java' ? javaText : route.type === 'coding' ? codingText : route.type === 'reference' ? referenceText : homeText);
     const locale = el('div', { class: 'locale-switch', role: 'group', 'aria-label': t(b('界面语言', 'Language')) },
       [['zh', '中', '中文'], ['en', 'EN', 'English']].map(([key, name, full]) => button(name, () => {
         if (language === key) return;
@@ -280,6 +284,12 @@
         el('div', { class: 'exam-actions' },
           link(t(b('辨析方法 →', 'Compare methods →')), javaTabs.api.href, 'button compact primary'),
           link(t(b('追踪节点 →', 'Trace nodes →')), javaTabs.nodes.href, 'button compact'))),
+      el('section', { class: 'exam-entry surface' },
+        el('div', {}, el('h2', {}, t(codingText)),
+          el('p', {}, t(b('补全三道作业题，再用递归、双端队列和节点练挑战题。', 'Complete three assignment problems, then try more challenges with recursion, deques, and nodes.')))),
+        el('div', { class: 'exam-actions' },
+          link(t(b('做编程题 →', 'Try coding problems →')), '#coding', 'button compact primary'),
+          link(t(b('打开编辑器 →', 'Open editor →')), '#coding/free', 'button compact'))),
       roadmap);
     return content;
   }
@@ -313,6 +323,7 @@
     const source = local ? '../' + ['CS201（2）', 'CS201', lectureFiles[id]].map(encodeURIComponent).join('/') : null;
     const supplement = lesson.chapters.findIndex((chapter) => chapter.classroom);
     const practiceLab = lesson.chapters.find((chapter) => chapter.labLink?.[1].startsWith('#java'))?.labLink[1];
+    const codingProblems = CS201Coding.problems.filter((exercise) => exercise.lectures.includes(id));
     const body = el('div', { class: 'article-flow' },
       lesson.chapters.map((chapter, i) =>
         el('section', { class: 'surface article-section' + (chapter.classroom ? ' classroom-start' : ''), id: 'concept-' + i },
@@ -326,6 +337,10 @@
     const contents = el('aside', { class: 'article-aside' },
       el('div', { class: 'surface contents' }, el('h3', {}, t(b('本讲内容', 'In this lecture'))),
         lesson.chapters.map((section, i) => button(t(section.title), () => jumpTo('concept-' + i), 'contents-link'))),
+      codingProblems.length ? el('div', { class: 'surface contents' },
+        el('h3', {}, t(codingText)),
+        el('div', { class: 'coding-lecture-links' }, codingProblems.map((item) =>
+          link(t(item.title), '#coding/' + item.id, 'slide-link')))) : null,
       lesson.refs ? el('div', { class: 'surface contents api-links' }, el('h3', {}, t(b('Java 官方文档', 'Java API references'))),
         lesson.refs.map(([name, href]) => link(name + ' ↗', href, 'slide-link', { target: '_blank', rel: 'noopener' }))) : null);
     return el('div', {},
@@ -584,7 +599,8 @@
     const route = routeForHash();
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
     document.title = 'CS201 Lab · ' + (route.type === 'lesson' ? t(lessons[route.id].title)
-      : route.type === 'java' ? t(javaText) : route.type === 'reference' ? t(referenceText) : t(b('数据结构实验室', 'Data Structures Lab')));
+      : route.type === 'java' ? t(javaText) : route.type === 'coding' ? t(codingText)
+        : route.type === 'reference' ? t(referenceText) : t(b('数据结构实验室', 'Data Structures Lab')));
     skip.textContent = t(b('跳到内容', 'Skip to content'));
     scrim.setAttribute('aria-label', t(b('关闭导航', 'Close navigation')));
     if (route.type === 'lesson') {
@@ -593,9 +609,16 @@
     }
     buildSidebar(route);
     buildHeader(route);
-    const content = route.type === 'lesson' ? chapterPage(route.id, route.tab)
-      : route.type === 'java' ? javaPage(route.tab)
-        : route.type === 'reference' ? reference() : home();
+    let content;
+    if (route.type === 'coding') {
+      const workshop = CS201Workshop.open(route.id, t, language);
+      dispose = workshop.dispose;
+      content = workshop.element;
+    } else {
+      content = route.type === 'lesson' ? chapterPage(route.id, route.tab)
+        : route.type === 'java' ? javaPage(route.tab)
+          : route.type === 'reference' ? reference() : home();
+    }
     main.replaceChildren(content);
     updateProgress();
     if (navigate) {

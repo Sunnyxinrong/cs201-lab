@@ -6,6 +6,17 @@
   const nodeLab = '#java/nodes';
   const apiLink = [b('在方法实验里验证 →', 'Verify in the method lab →'), apiLab];
   const nodeLink = [b('跟着代码追踪引用 →', 'Trace the references →'), nodeLab];
+  CS201.classroomTailAdd = `Node<E> newNode = new Node<>(e);
+        if (head == null) {
+            head = newNode;
+        } else {
+            Node<E> currentNode = head;
+            while (currentNode.next != null) {
+                currentNode = currentNode.next;
+            }
+            currentNode.next = newNode;
+        }
+        size++;`;
   const headers = [b('Java 17 签名', 'Java 17 signature'), b('参数怎么写', 'Arguments'), b('结果与边界', 'Result and edge cases')];
 
   lessons[10].chapters.push(
@@ -87,8 +98,8 @@ boolean found = xs.remove("9");                 // false`, labLink: apiLink })
 // Node<Book> n2 = new Node<>(new Book("Math202"));
 // n1.next = n2;`, labLink: nodeLink }),
     s(b('MyLinkedList.add 的尾插代码', 'The classroom MyLinkedList.add tail insertion'), [
-      b('你贴的代码在创建新节点一行漏写了 new。可写成 Node<E> newNode = new Node<>(e)，也可写 new Node<E>(e)。如果 head 为空，只需把新节点设为 head。否则从 head 出发找 next 为 null 的那个节点，然后改它的 next。', 'The line creating the new node in the pasted code is missing new. Write Node<E> newNode = new Node<>(e), or use new Node<E>(e). If head is null, assign the new node to head. Otherwise start at head, find the node whose next is null, and change that field.'),
-      b('原稿的 while 没有花括号，循环体只有 currentNode = currentNode.next;，尽管下一行看起来也缩进了。下面补上花括号把边界写清楚。size++ 在 if/else 后执行一次，所以两条成功分支都正确计数。', 'The original while has no braces, so only currentNode = currentNode.next; is in the loop even though the following line looks indented. The braces below make that boundary visible. size++ runs once after if/else, so both successful branches count the insertion.')
+      b('用 new Node<>(e) 创建节点，初始 next 为 null。空表把 head 指向它。非空表从 head 出发，沿 next 移动到最后一个节点，再令它的 next 指向新节点。', 'Create a node with new Node<>(e). Its next starts as null. In an empty list, point head to it. In a nonempty list, follow next from head to the final node and set that node’s next to the new node.'),
+      b('遍历期间 currentNode 始终指向一个已有节点，非空表的 head 保持原来的引用。while 退出后才接上新节点，两个分支结束后都执行一次 size++。可以用空表、单节点表和多节点表检查这些条件。', 'During traversal, currentNode always refers to an existing node and the head of a nonempty list retains its original reference. Attach the new node after the while loop. Both branches increment size once. Verify these properties with an empty list, a single node, and multiple nodes.')
     ], { code: `class MyLinkedList<E> {
     Node<E> head;
     int size;
@@ -99,19 +110,9 @@ boolean found = xs.remove("9");                 // false`, labLink: apiLink })
     }
 
     void add(E e) {
-        Node<E> newNode = new Node<>(e);
-        if (head == null) {
-            head = newNode;
-        } else {
-            Node<E> currentNode = head;
-            while (currentNode.next != null) {
-                currentNode = currentNode.next;
-            }
-            currentNode.next = newNode;
-        }
-        size++;
+        ${CS201.classroomTailAdd}
     }
-}`, labLink: nodeLink }),
+}`, labLink: [b('运行尾插结构测试 →', 'Run the tail-append checks →'), '#coding/list-append'] }),
     s(b('移动变量和修改节点是两种操作', 'Moving a reference versus changing a node'), [
       b('Node<E> currentNode = head 会复制引用。此刻两个变量指向同一个节点。currentNode = currentNode.next 只移动局部变量，head 保持指向首节点。currentNode.next = newNode 修改的是节点对象里的字段，其他沿这个节点走的引用也会看到新连接。', 'Node<E> currentNode = head copies a reference. Both variables initially point to one node. currentNode = currentNode.next moves the local variable and head still points to the first node. currentNode.next = newNode edits a field of the shared node, so other references through it observe the new link.'),
       b('尾插要停在有效的最后一个节点，所以用 currentNode.next != null。若循环条件写成 currentNode != null，离开循环时变量本身已是 null，再写 currentNode.next 就会抛 NullPointerException。', 'Insertion must stop on the last real node, so the condition checks currentNode.next != null. A condition of currentNode != null walks one step further. Writing currentNode.next afterward throws NullPointerException.'),
